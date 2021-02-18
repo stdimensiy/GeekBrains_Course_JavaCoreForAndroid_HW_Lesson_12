@@ -1,6 +1,7 @@
 package ru.geekbrains.JavaCoreForAndroid;
 
 import java.util.*;
+
 /**
  * Сourse: java core for android
  * Faculty of Geek University Android Development
@@ -56,6 +57,18 @@ public class Lesson12 {
         System.out.println("Сводный результат тестирования режима \"Два потока\"");
         System.out.println("    " + charVal_t + " Среднее время обработки массива "
                 + SIZE + " элементов, \n      заданным алгоритмом составляет: " + sumTimeTest / countTest + " mc.");
+        System.out.println("+---------------------------------------------------------------------------------------+");
+        System.out.println("Тест работы с массивом в режиме двух потоков но с модифицированным алгоритмом");
+        countTest = 0;               // количество принимаемых к учету тестов
+        sumTimeTest = 0;             // суммарное время принятых к учету тестов
+        for (int i = 1; i <= numberOfTests; i++) {
+            float[] arr = new float[SIZE];
+            long currentTimeTest = startTwoThreadV2(fill(arr), "№" + i);
+            validation(arr, currentTimeTest);
+        }
+        System.out.println("Сводный результат тестирования режима \"Два потока\"");
+        System.out.println("    " + charVal_t + " Среднее время обработки массива "
+                + SIZE + " элементов, \n      заданным алгоритмом составляет: " + sumTimeTest / countTest + " mc.");
 
     }
 
@@ -93,15 +106,29 @@ public class Lesson12 {
         return delta;
     }
 
+    //модифицированный метод выполняет задачу в режиме одного потока
+    static long startModSingleThread(float[] arr, String testNum, int initialIndex, int offset) {
+        System.out.println(charVal_rp + " Старт процесса... Испытание " + testNum + ".Поток:"
+                + Thread.currentThread().getName() + " " + charVal_f);
+        Date startTime = new Date();
+        int len = arr.length;
+        for (int i = initialIndex; i < len; i += offset) {
+            arr[i] *= Math.sin(0.2f + i / 5)
+                    * Math.cos(0.2f + i / 5)
+                    * Math.cos(0.4f + i / 2);
+        }
+        Date stopTime = new Date();
+        long delta = stopTime.getTime() - startTime.getTime();
+        System.out.println(charVal_sp + " Стоп  процесса... Испытание " + testNum + ".Поток:"
+                + Thread.currentThread().getName() + " " + charVal_f + " / Время выполнения: " + delta + "мс.");
+        return delta;
+    }
+
     private static long startTwoThread(float[] arr, String testNum) throws InterruptedException {
         System.out.println(charVal_gr + " Старт многопоточного процесса " + testNum + ": " + charVal_f);
         Date startTime = new Date();
-        // старт процесса разделения массива на части
-        float[] tarr1;
-        float[] tarr2;
-        // копирование
-        tarr1 = Arrays.copyOf(arr, SIZE*2 / 3);
-        tarr2 = Arrays.copyOfRange(arr, tarr1.length, arr.length);
+        float[] tarr1 = Arrays.copyOf(arr, SIZE * 2 / 3);
+        float[] tarr2 = Arrays.copyOfRange(arr, tarr1.length, arr.length);
         //щупаем многопоток
         MyThread t1 = new MyThread(testNum, tarr1, 0);
         MyThread t2 = new MyThread(testNum, tarr2, tarr1.length);
@@ -114,6 +141,23 @@ public class Lesson12 {
         System.arraycopy(tarr2, 0, arr, tarr1.length, tarr2.length);
         //System.out.println(Arrays.toString(arrEtalon));
         //System.out.println(Arrays.toString(arr));
+        Date stopTime = new Date();
+        long delta = stopTime.getTime() - startTime.getTime();
+        System.out.println(charVal_gs + " Стоп многопоточного процесса " + testNum + ": " + charVal_f + "\n"
+                + charVal_t + " Финальное время выполнения: " + delta + "мс.");
+        return delta;
+    }
+
+    // Модифицированный метод обработки массива без разделения и склаивания массивов а с назначением области работы потока
+    private static long startTwoThreadV2(float[] arr, String testNum) throws InterruptedException {
+        System.out.println(charVal_gr + " Старт модифицированного многопоточного процесса " + testNum + ": " + charVal_f);
+        Date startTime = new Date();
+        MyModThread t1 = new MyModThread(arr, testNum, 0, 2);
+        MyModThread t2 = new MyModThread(arr, testNum, 1, 2);
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
         Date stopTime = new Date();
         long delta = stopTime.getTime() - startTime.getTime();
         System.out.println(charVal_gs + " Стоп многопоточного процесса " + testNum + ": " + charVal_f + "\n"
